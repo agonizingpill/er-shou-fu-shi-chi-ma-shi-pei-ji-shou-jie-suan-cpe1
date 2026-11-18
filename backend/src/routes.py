@@ -33,7 +33,9 @@ def assessments(d:AssessmentIn,u=Depends(current)):
  d=change(u,'适配计算',lambda s:fit.assess(s,d.model_dump()))
  try:redis.from_url(os.environ['REDIS_URL'],socket_connect_timeout=1,socket_timeout=2).rpush('resale:fit',d['id'])
  except Exception:
-  with Session() as s:x=s.get(FitAssessment,d['id']);x.state='failed';x.error='适配队列不可达，请重试';s.commit()
+  with Session() as s:
+   x=s.get(FitAssessment,d['id'])
+   if x.state=='queued':x.state='failed';x.error='适配队列不可达，请重试';s.commit()
   raise HTTPException(503,'适配队列暂时不可达，记录已标记失败，可重新提交')
  return d
 @router.post('/fittings')
